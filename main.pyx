@@ -14,6 +14,7 @@ DTYPE = np.int
 # type with a _t-suffix.
 ctypedef np.int_t DTYPE_t
 
+
 cdef enum Rotation:
     top_right_C = 1
     top_right_A = 2
@@ -64,7 +65,7 @@ cdef class Game:
         winners = []
         for i in range (6-3):
             for j in range(6-3):
-                origin_tok_1 = grid[i, j]
+                origin_tok_1 = self.grid[i, j]
                 horizontal_match = all([grid[i, j + idx] == origin_tok_1 for idx in range(1, 4)]) if origin_tok_1 != 0 else False
                 vertical_match = all([grid[i + idx, j] == origin_tok_1 for idx in range(1, 4)]) if origin_tok_1 != 0 else False
                 diag_desc_match = all([grid[i + idx, j + idx] == origin_tok_1 for idx in range(1, 4)]) if origin_tok_1 != 0 else False
@@ -72,10 +73,10 @@ cdef class Game:
                 diag_asc_match = all([grid[i + idx, j - idx] == origin_tok_2 for idx in range(1, 4)]) if origin_tok_2 != 0 else False
                 if (horizontal_match or vertical_match or diag_desc_match):
                     self.fini = True
-                    winners.append(origin_token_1)
+                    winners.append(origin_tok_1)
                 if diag_asc_match:
                     self.fini = True
-                    winners.append(origin_token_2)
+                    winners.append(origin_tok_2)
         if len(winners) == 1:
             self.winner = winners[0]
         return self.fini
@@ -110,11 +111,11 @@ def from_grid(grid, turn = 1):
                 break
     return game
     
-cdef Coup create_move(x,y,rot):
+cdef Coup create_move(int x, int y, Rotation rot):
     cdef Coup coup
-    coup.x = i
-    coup.y = j 
-    coup.rot = 1
+    coup.x = x
+    coup.y = y
+    coup.rot = rot
     return coup
 
 def possible_moves(Game game):
@@ -122,7 +123,7 @@ def possible_moves(Game game):
     for i in range(6):
         for j in range(6):
             if game.grid[i][j] == 0:
-                for rot in range(1,9):
+                for rot in Rotation:
                     coups.append( create_move(i,j,rot))
 
 cdef class Node:
