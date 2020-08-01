@@ -80,22 +80,16 @@ cdef class Game:
             self.winner = winners[0]
         return self.fini
 
-    cpdef int is_move_possible(self, int colonne):
-        return self.grid[0,colonne] == 0
+    cpdef int is_move_possible(self, int i, int j):
+        return self.grid[i, j] != 0
 
-    cpdef int row(self, int colonne):
-        return self.hauteurs[colonne]
-
-    cpdef play(self, int colonne):
+    cpdef play(self, Coup coup):
         "assuming the move is possible"
         if self.fini:
             return
-        cdef int i = self.row(colonne)
         cdef int turn = self.turn()
-        self.grid[i][colonne] = turn
-        self.moves[self.nb_moves] = colonne
-        self.check_win(i,colonne)
-        self.hauteurs[colonne] -=1
+        self.grid[coup.x][coup.y] = turn
+        self.check_win()
         self.nb_moves += 1
 
 def from_grid(grid, turn = 1):
