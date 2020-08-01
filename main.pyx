@@ -18,7 +18,7 @@ cdef enum Direction:
     clockwise = 1
     counter_clockwise = 2
 
-cdef enum Postion:
+cdef enum Position:
     top_right = 1 
     top_left = 2
     bottom_right = 3
@@ -26,7 +26,7 @@ cdef enum Postion:
 
 cdef struct Rotation:
     Direction dir
-    Postion pos
+    Position pos
 
 cdef struct Coup:
     int x
@@ -97,20 +97,22 @@ cdef class Game:
         self.check_win()
         self.nb_moves += 1
 
-    cdef apply_rotation(self, rot):
-        square = get_square(rot.pos)
-        nb_rot = 1 if rot.dir = Direction.clockwise else 3
+    cdef apply_rotation(self, Rotation rot):
+        nb_rot = 1 if rot.dir == Direction.clockwise else 3
+        start_i, end_i = (0, 3) if rot.pos in [Position.top_right, Position.top_left] else (3, 6)
+        start_j, end_j = (0, 3) if rot.pos in [Position.top_left, Position.bottom_left] else (3, 6)
+        print(rot, start_i, start_j)
         for _ in range(nb_rot):
-            square[0][0], square[0][2], square[2][2], square[2][0] = square[2][0], square[0][0], square[0][2], square[2][2]
-            square[0][1], square[1][2], square[2][1], square[1][0] = square[1][0], square[0][1], square[1][2], square[2][1]
-        self.set_square(rot.pos, new_square)
+            self.grid[start_i + 0][start_j + 0], self.grid[start_i + 0][start_j + 2], self.grid[start_i + 2][start_j + 2], self.grid[start_i + 2][start_j + 0] = self.grid[start_i + 2][start_j + 0], self.grid[start_i + 0][start_j + 0], self.grid[start_i + 0][start_j + 2], self.grid[start_i + 2][start_j + 2]
+            self.grid[start_i + 0][start_j + 1], self.grid[start_i + 1][start_j + 2], self.grid[start_i + 2][start_j + 1], self.grid[start_i + 1][start_j + 0] = self.grid[start_i + 1][start_j + 0], self.grid[start_i + 0][start_j + 1], self.grid[start_i + 1][start_j + 2], self.grid[start_i + 2][start_j + 1]
+        
 
-    cdef get_square(self, pos):
+    cdef get_square(self, Position pos):
         start_i, end_i = (0, 3) if pos in [Position.top_right, Position.top_left] else (3, 6)
         start_j, end_j = (0, 3) if pos in [Position.bottom_right, Position.bottom_left] else (3, 6)
         return self.grid[start_i:end_i][start_j:end_j]
 
-    cdef set_square(self, pos, new_square):
+    cdef set_square(self, Position pos, new_square):
         start_i, end_i = (0, 3) if pos in [Position.top_right, Position.top_left] else (3, 6)
         start_j, end_j = (0, 3) if pos in [Position.bottom_right, Position.bottom_left] else (3, 6)
         self.grid[start_i:end_i][start_j:end_j] = new_square
@@ -129,15 +131,14 @@ def from_grid(grid, turn = 1):
                 break
     return game
 
-cdef Coup create_move(int x, int y, Direction dir, Postion pos):
-    cdef Rotation rot
-    rot.pos = pos
-    rot.dir = dir
+cdef Coup create_move(int x, int y, Direction dir, Position pos):
     cdef Coup coup
     coup.x = x
     coup.y = y
-    coup.rot = rot
+    coup.rot.pos = pos
+    coup.rot.dir = dir
     return coup
+
 def compatibility_create_move(x, y, dir, pos):
     return create_move(x, y, dir, pos)
 
@@ -147,7 +148,7 @@ def possible_moves(Game game):
         for j in range(6):
             if game.grid[i][j] == 0:
                 for dir in Direction:
-                    for pos in Postion:
+                    for pos in Position:
                         coups.append(create_move(i,j, dir, pos))
 
 cdef class Node:

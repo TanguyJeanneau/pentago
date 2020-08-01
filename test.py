@@ -7,5 +7,5 @@ def print_game(game):
 
 game = Game()
 print_game(game)
-game.play(compatibility_create_move(0, 0, 1, 1))
+game.play(compatibility_create_move(0, 0, 1, 2))
 print_game(game)
