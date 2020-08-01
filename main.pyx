@@ -14,16 +14,19 @@ DTYPE = np.int
 # type with a _t-suffix.
 ctypedef np.int_t DTYPE_t
 
+cdef enum Direction:
+    clockwise,
+    counter_clockwise
 
-cdef enum Rotation:
-    top_right_C = 1
-    top_right_A = 2
-    top_left_C = 3
-    top_left_A = 4
-    bottom_right_C = 5
-    bottom_right_A = 6
-    bottom_left_C = 7
-    bottom_left_A = 8
+cdef enum Postion:
+    top_right, 
+    top_left,
+    bottom_right,
+    bottom_left
+
+cdef struct Rotation:
+    Direction dir
+    Postion pos
 
 cdef struct Coup:
     int x
@@ -109,7 +112,10 @@ def from_grid(grid, turn = 1):
                 break
     return game
     
-cdef Coup create_move(int x, int y, Rotation rot):
+cdef Coup create_move(int x, int y, Direction dir, Postion pos):
+    cdef Rotation rot
+    rot.pos = pos
+    rot.dir = dir
     cdef Coup coup
     coup.x = x
     coup.y = y
@@ -121,8 +127,9 @@ def possible_moves(Game game):
     for i in range(6):
         for j in range(6):
             if game.grid[i][j] == 0:
-                for rot in Rotation:
-                    coups.append( create_move(i,j,rot))
+                for dir in Direction:
+                    for pos in Postion:
+                        coups.append(create_move(i,j, dir, pos))
 
 cdef class Node:
     cdef public int expended
