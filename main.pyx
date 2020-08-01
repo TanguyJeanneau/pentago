@@ -15,25 +15,21 @@ DTYPE = np.int
 ctypedef np.int_t DTYPE_t
 
 cdef class Game:
-    cdef public int moves[6*7]
-    
+
     cdef public np.int_t[:,:] grid
     
     cdef public int nb_moves
     
     cdef public int winner           
 
-    cdef public int fini 
-    cdef public int [7] hauteurs 
+    cdef public int fini
     
     def __init__(self):
-        self.grid = np.zeros((6,7), dtype = DTYPE)
+        self.grid = np.zeros((9,9), dtype = DTYPE)
         self.fini = 0
         self.winner = 0
         self.nb_moves = 0
         cdef int i
-        for i in range(7):
-            self.hauteurs[i]= 5
             
     cpdef Game copy(self):
         cdef Game other = Game()
@@ -47,18 +43,9 @@ cdef class Game:
     
     cpdef int turn(self):
         return 1 + (self.nb_moves%2)
-
-    cpdef undo(self):
-        colonne = self.moves[self.nb_moves -1]
-        row = self.row(colonne) + 1
-        self.fini = False
-        self.winner = 0
-        self.grid[row, colonne] = 0
-        self.hauteurs[colonne] +=1
-        self.nb_moves -= 1
     
 
-    cpdef int check_win(self, int i, int j ):
+    cpdef int check_win(self, int i, int j):
         cdef DTYPE_t joueur = self.grid[i, j]
         cdef int xi, xj, count, offset
         cdef int idx
