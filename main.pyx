@@ -66,11 +66,11 @@ cdef class Game:
         for i in range (6-3):
             for j in range(6-3):
                 origin_tok_1 = self.grid[i, j]
-                horizontal_match = all([grid[i, j + idx] == origin_tok_1 for idx in range(1, 4)]) if origin_tok_1 != 0 else False
-                vertical_match = all([grid[i + idx, j] == origin_tok_1 for idx in range(1, 4)]) if origin_tok_1 != 0 else False
-                diag_desc_match = all([grid[i + idx, j + idx] == origin_tok_1 for idx in range(1, 4)]) if origin_tok_1 != 0 else False
-                origin_tok_2 = grid[i, j + 3]
-                diag_asc_match = all([grid[i + idx, j - idx] == origin_tok_2 for idx in range(1, 4)]) if origin_tok_2 != 0 else False
+                horizontal_match = all([self.grid[i, j + idx] == origin_tok_1 for idx in range(1, 4)]) if origin_tok_1 != 0 else False
+                vertical_match = all([self.grid[i + idx, j] == origin_tok_1 for idx in range(1, 4)]) if origin_tok_1 != 0 else False
+                diag_desc_match = all([self.grid[i + idx, j + idx] == origin_tok_1 for idx in range(1, 4)]) if origin_tok_1 != 0 else False
+                origin_tok_2 = self.grid[i, j + 3]
+                diag_asc_match = all([self.grid[i + idx, j - idx] == origin_tok_2 for idx in range(1, 4)]) if origin_tok_2 != 0 else False
                 if (horizontal_match or vertical_match or diag_desc_match):
                     self.fini = True
                     winners.append(origin_tok_1)
@@ -144,12 +144,11 @@ cdef class Node:
         cdef Game otherGame
         coups_possibles = possible_moves(self.game)
         for i in range(len(coups_possibles)):
-            if self.game.is_move_possible(coups_possibles[i]):
-                otherGame = self.game.copy()
-                otherGame.play(i)
-                self.children[index] = Node(otherGame, i)
-                self.children[index].parent = self
-                index += 1
+            otherGame = self.game.copy()
+            otherGame.play(coups_possibles[i])
+            self.children[index] = Node(otherGame, i)
+            self.children[index].parent = self
+            index += 1
         self.nb_children = index
         self.expended = True
         
