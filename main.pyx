@@ -98,7 +98,24 @@ cdef class Game:
         self.nb_moves += 1
 
     cdef apply_rotation(self, rot):
-        pass
+        square = get_square(rot.pos)
+        nb_rot = 1 if rot.dir = Direction.clockwise else 3
+        for _ in range(nb_rot):
+            square[0][0], square[0][2], square[2][2], square[2][0] = square[2][0], square[0][0], square[0][2], square[2][2]
+            square[0][1], square[1][2], square[2][1], square[1][0] = square[1][0], square[0][1], square[1][2], square[2][1]
+        self.set_square(rot.pos, new_square)
+
+    cdef get_square(self, pos):
+        start_i, end_i = (0, 3) if pos in [Position.top_right, Position.top_left] else (3, 6)
+        start_j, end_j = (0, 3) if pos in [Position.bottom_right, Position.bottom_left] else (3, 6)
+        return self.grid[start_i:end_i][start_j:end_j]
+
+    cdef set_square(self, pos, new_square):
+        start_i, end_i = (0, 3) if pos in [Position.top_right, Position.top_left] else (3, 6)
+        start_j, end_j = (0, 3) if pos in [Position.bottom_right, Position.bottom_left] else (3, 6)
+        self.grid[start_i:end_i][start_j:end_j] = new_square
+
+
 
 def from_grid(grid, turn = 1):
     game = Game()
