@@ -15,14 +15,14 @@ DTYPE = np.int
 ctypedef np.int_t DTYPE_t
 
 cdef enum Direction:
-    clockwise,
-    counter_clockwise
+    clockwise = 1
+    counter_clockwise = 2
 
 cdef enum Postion:
-    top_right, 
-    top_left,
-    bottom_right,
-    bottom_left
+    top_right = 1 
+    top_left = 2
+    bottom_right = 3
+    bottom_left = 4
 
 cdef struct Rotation:
     Direction dir
@@ -111,7 +111,7 @@ def from_grid(grid, turn = 1):
                 game.hauteurs[i]=j
                 break
     return game
-    
+
 cdef Coup create_move(int x, int y, Direction dir, Postion pos):
     cdef Rotation rot
     rot.pos = pos
@@ -121,6 +121,8 @@ cdef Coup create_move(int x, int y, Direction dir, Postion pos):
     coup.y = y
     coup.rot = rot
     return coup
+def compatibility_create_move(x, y, dir, pos):
+    return create_move(x, y, dir, pos)
 
 def possible_moves(Game game):
     coups = []
@@ -264,3 +266,10 @@ cdef Node best_child(Node node):
             best_score = score
             best = node.children[i]
     return best
+
+
+
+def print_game(game):
+    for ligne in game.grid:
+        print(*ligne)
+
