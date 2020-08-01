@@ -13,7 +13,22 @@ DTYPE = np.int
 # every type in the numpy module there's a corresponding compile-time
 # type with a _t-suffix.
 ctypedef np.int_t DTYPE_t
- 
+
+cdef enum Rotation:
+    top_right_C = 1
+    top_right_A = 2
+    top_left_C = 3
+    top_left_A = 4
+    bottom_right_C = 5
+    bottom_right_A = 6
+    bottom_left_C = 7
+    bottom_left_A = 8
+
+cdef struct Coup:
+    int x
+    int y 
+    Rotation rot
+
 cdef class Game:
 
     cdef public np.int_t[:,:] grid
@@ -108,16 +123,20 @@ def from_grid(grid, turn = 1):
                 break
     return game
     
-    
-cdef int* possible_moves(Game game):
-    cdef int[8] moves
-    cdef int index = 0, i
-    for i in range(7):
-        if game.is_move_possible(i):
-            index +=1
-            moves[index] = i 
-    moves[0] = index
-    return moves
+cdef Coup create_move(x,y,rot):
+    cdef Coup coup
+    coup.x = i
+    coup.y = j 
+    coup.rot = 1
+    return coup
+
+def possible_moves(Game game):
+    coups = []
+    for i in range(6):
+        for j in range(6):
+            if game.grid[i][j] == 0:
+                for rot in range(1,9):
+                    coups.append( create_move(i,j,rot))
 
 cdef class Node:
     cdef public int expended
@@ -189,7 +208,7 @@ cdef class Evaluation_simple(Evaluation):
         else:
             return 0
 
-              
+  
 def monte_carlo_tree_search(game, time_allocated): 
     d = time()
     current_time = 0
@@ -225,8 +244,8 @@ cdef Node traverse(node):
 # function for the result of the simulation 
 cdef int rollout(Node node):
     cdef Game game = node.game.copy()
-    cdef int* coups_possibles
-    cdef int coup_choisi
+    cdef coups_possibles
+    cdef coup_choisi
     while not game.fini: 
         coups_possibles = possible_moves(game)
         coup_choisi = coups_possibles[1 + np.random.randint(coups_possibles[0])]
