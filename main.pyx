@@ -13,7 +13,7 @@ DTYPE = np.int
 # every type in the numpy module there's a corresponding compile-time
 # type with a _t-suffix.
 ctypedef np.int_t DTYPE_t
-
+ 
 cdef class Game:
 
     cdef public np.int_t[:,:] grid
@@ -106,57 +106,6 @@ cdef int* possible_moves(Game game):
     moves[0] = index
     return moves
 
-cdef int are_valid(int i, int j):
-    return 0 <= i <6 and  0<= j <7 
-
-cdef double alpha_beta(Game jeu, Evaluation evaluation, int depth, float alpha, float beta):
-    cdef int joueur = jeu.turn()
-    cdef float best_score = float('inf') * (-1 if joueur ==1 else 1)
-    if depth == 0 or jeu.fini:
-        return evaluation.evaluate(jeu)
-    cdef int colonne
-    cdef float score
-    for colonne in range(7):
-        if jeu.is_move_possible(colonne):
-            jeu.play(colonne)
-            score = alpha_beta(jeu, evaluation, depth - 1 , alpha, beta)
-            jeu.undo()
-            if joueur == 1 and score > best_score or joueur == 2 and score < best_score:
-                best_score = score
-            if joueur ==1:
-                if score > beta :
-                    return score 
-                alpha = max(alpha, score)
-            if joueur ==2:
-                if score < alpha:
-                    return score 
-                beta = min(beta, score)
-    return best_score
-
-cpdef int min_max(jeu, Evaluation evaluation, depth = 3):
-    cdef float alpha = float('-inf')
-    cdef float beta = float('inf')
-    cdef int joueur = jeu.turn()
-    cdef int best = -1
-    cdef float best_score = float('inf') * (-1 if joueur ==1 else 1)
-    cdef int colonne
-    cdef float score
-    for colonne in np.random.permutation(7):
-        if jeu.is_move_possible(colonne):
-            jeu.play(colonne)
-            score = alpha_beta(jeu, evaluation, depth - 1 , alpha, beta)
-            jeu.undo()
-            if joueur == 1 and score > best_score or joueur == 2 and score < best_score:
-                best = colonne
-                best_score = score
-            if joueur ==1:
-                alpha = max(alpha, score)
-            if joueur ==2:
-                beta = min(beta, score)
-    return best
-
-
-
 cdef class Node:
     cdef public int expended
     cdef public int parent_move
@@ -173,14 +122,15 @@ cdef class Node:
         self.parent_move = parent_move
         self.win = 0
         self.visited = 0
-        self.children = np.zeros(7, dtype = np.object)
+        self.children = np.zeros(len(possible_moves(self.game)), dtype = np.object)
         
     cpdef expend(self):
         cdef int i 
         cdef int index = 0
         cdef Game otherGame
-        for i in range(7):
-            if self.game.is_move_possible(i):
+        coups_possibles = possible_moves(self.game)
+        for i in range(len(coups_possibles)):
+            if self.game.is_move_possible(coups_possibles[i]):
                 otherGame = self.game.copy()
                 otherGame.play(i)
                 self.children[index] = Node(otherGame, i)
@@ -206,6 +156,7 @@ cdef float eval_score(Node self):
     cdef float res = self.win / visits
     res += np.sqrt(2*np.log(self.parent.visited) / visits) #assert self.parent.visited >= 1, sinon c'est que l'algo marche pas comme prévu
     return res
+
 def win_rate(self):
     if self.visited == 0:
         return 0
