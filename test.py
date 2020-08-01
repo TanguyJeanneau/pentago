@@ -6,6 +6,17 @@ def print_game(game):
 
 
 game = Game()
-print_game(game)
-game.play(compatibility_create_move(0, 0, 1, 2))
-print_game(game)
+def play_print(a,b,c,d):
+    game.play(compatibility_create_move(a,b,c,d))
+    print_game(game)
+    
+play_print(1, 1, 2, 3)
+play_print(2, 2, 1, 2)
+play_print(1, 2, 2, 3)
+play_print(4, 0, 1, 4)
+play_print(1, 4, 1, 4)
+play_print(2, 4, 1, 1)
+
+best, root = monte_carlo_tree_search(game, 1)
+
+print(best, root)

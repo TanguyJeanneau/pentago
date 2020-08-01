@@ -56,8 +56,6 @@ cdef class Game:
         other.fini = self.fini
         other.winner = self.winner
         other.nb_moves  = self.nb_moves
-        other.hauteurs = self.hauteurs.copy()
-        other.moves = self.moves.copy()
         return other
     
     cpdef int turn(self):
@@ -101,7 +99,6 @@ cdef class Game:
         nb_rot = 1 if rot.dir == Direction.clockwise else 3
         start_i, end_i = (0, 3) if rot.pos in [Position.top_right, Position.top_left] else (3, 6)
         start_j, end_j = (0, 3) if rot.pos in [Position.top_left, Position.bottom_left] else (3, 6)
-        print(rot, start_i, start_j)
         for _ in range(nb_rot):
             self.grid[start_i + 0][start_j + 0], self.grid[start_i + 0][start_j + 2], self.grid[start_i + 2][start_j + 2], self.grid[start_i + 2][start_j + 0] = self.grid[start_i + 2][start_j + 0], self.grid[start_i + 0][start_j + 0], self.grid[start_i + 0][start_j + 2], self.grid[start_i + 2][start_j + 2]
             self.grid[start_i + 0][start_j + 1], self.grid[start_i + 1][start_j + 2], self.grid[start_i + 2][start_j + 1], self.grid[start_i + 1][start_j + 0] = self.grid[start_i + 1][start_j + 0], self.grid[start_i + 0][start_j + 1], self.grid[start_i + 1][start_j + 2], self.grid[start_i + 2][start_j + 1]
@@ -117,21 +114,7 @@ cdef class Game:
         start_j, end_j = (0, 3) if pos in [Position.bottom_right, Position.bottom_left] else (3, 6)
         self.grid[start_i:end_i][start_j:end_j] = new_square
 
-
-
-def from_grid(grid, turn = 1):
-    game = Game()
-    game.grid = grid
-    if turn ==2:
-        game.nb_moves = 1
-    for i in range(7):
-        for j in range(5,-1,-1):
-            if grid[j, i] == 0:
-                game.hauteurs[i]=j
-                break
-    return game
-
-cdef Coup create_move(int x, int y, Direction dir, Position pos):
+cdef Coup create_move(int x, int y, dir, pos):
     cdef Coup coup
     coup.x = x
     coup.y = y
@@ -147,13 +130,14 @@ def possible_moves(Game game):
     for i in range(6):
         for j in range(6):
             if game.grid[i][j] == 0:
-                for dir in Direction:
-                    for pos in Position:
+                for dir in range(1,3):
+                    for pos in range(1,5):
                         coups.append(create_move(i,j, dir, pos))
+    return coups
 
 cdef class Node:
     cdef public int expended
-    cdef public int parent_move
+    cdef public Coup parent_move
     cdef public int nb_children
     cdef public Node[:] children
     cdef public Node parent
@@ -161,7 +145,7 @@ cdef class Node:
     cdef public int win 
     cdef public int visited 
     
-    def __init__(self, Game game, int parent_move = -1,):
+    def __init__(self, Game game, Coup parent_move):
         self.expended = False
         self.game = game
         self.parent_move = parent_move
@@ -174,10 +158,10 @@ cdef class Node:
         cdef int index = 0
         cdef Game otherGame
         coups_possibles = possible_moves(self.game)
-        for i in range(len(coups_possibles)):
+        for coup in coups_possibles:
             otherGame = self.game.copy()
-            otherGame.play(coups_possibles[i])
-            self.children[index] = Node(otherGame, i)
+            otherGame.play(coup)
+            self.children[index] = Node(otherGame, coup)
             self.children[index].parent = self
             index += 1
         self.nb_children = index
@@ -224,7 +208,8 @@ cdef class Evaluation_simple(Evaluation):
 def monte_carlo_tree_search(game, time_allocated): 
     d = time()
     current_time = 0
-    root = Node(game.copy())
+    cdef Coup dummy_move
+    root = Node(game.copy(), dummy_move)
     cdef int iterations = 0
     while current_time < time_allocated: 
         leaf = traverse(root)  
@@ -234,13 +219,13 @@ def monte_carlo_tree_search(game, time_allocated):
         current_time = time() - d
     cdef float best_score =-1
     cdef float score
-    cdef int best = -1
+    cdef Coup best
     for i in range(root.nb_children):
         score = win_rate(root.children[i])
         if score > best_score:
             best_score = score
             best = root.children[i].parent_move
-    return best 
+    return best, root 
   
 cdef Node traverse(node): 
     while node.expended: 
@@ -260,7 +245,7 @@ cdef int rollout(Node node):
     cdef coup_choisi
     while not game.fini: 
         coups_possibles = possible_moves(game)
-        coup_choisi = coups_possibles[1 + np.random.randint(coups_possibles[0])]
+        coup_choisi = coups_possibles[np.random.randint(len(coups_possibles))]
         game.play(coup_choisi)
     return game.winner
   
@@ -284,10 +269,3 @@ cdef Node best_child(Node node):
             best_score = score
             best = node.children[i]
     return best
-
-
-
-def print_game(game):
-    for ligne in game.grid:
-        print(*ligne)
-
