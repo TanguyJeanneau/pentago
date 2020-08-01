@@ -25,7 +25,7 @@ cdef class Game:
     cdef public int fini
     
     def __init__(self):
-        self.grid = np.zeros((9,9), dtype = DTYPE)
+        self.grid = np.zeros((6,6), dtype = DTYPE)
         self.fini = 0
         self.winner = 0
         self.nb_moves = 0
@@ -45,38 +45,25 @@ cdef class Game:
         return 1 + (self.nb_moves%2)
     
 
-    cpdef int check_win(self, int i, int j):
-        cdef DTYPE_t joueur = self.grid[i, j]
-        cdef int xi, xj, count, offset
-        cdef int idx
-        for idx in range(4):
-            if idx == 0:
-                xi, xj = 0, 1
-            elif idx == 1:
-                xi, xj = 1, 1
-            elif idx == 2:
-                xi, xj = 1, 0
-            else:
-                xi, xj =-1, 1
-            count = 1
-            offset = 1
-            while are_valid(i + offset * xi, j + offset * xj) and self.grid[i + offset * xi, j + offset * xj] == joueur:
-                count +=1
-                offset +=1
-            offset = -1
-            while are_valid(i + offset * xi, j + offset * xj) and self.grid[i + offset * xi, j + offset * xj] == joueur:
-                count +=1
-                offset -=1
-            if count >=4:
-                self.fini = True
-                self.winner = joueur
-                return True
-        self.fini = True
-        for idx in range(7):
-            if self.grid[0,idx] == 0:
-                self.fini = False
-                return False
-        return True
+    cpdef int check_win(self):
+        winners = []
+        for i in range (6-3):
+            for j in range(6-3):
+                origin_tok_1 = grid[i, j]
+                horizontal_match = all([grid[i, j + idx] == origin_tok_1 for idx in range(1, 4)]) if origin_tok_1 != 0 else False
+                vertical_match = all([grid[i + idx, j] == origin_tok_1 for idx in range(1, 4)]) if origin_tok_1 != 0 else False
+                diag_desc_match = all([grid[i + idx, j + idx] == origin_tok_1 for idx in range(1, 4)]) if origin_tok_1 != 0 else False
+                origin_tok_2 = grid[i, j + 3]
+                diag_asc_match = all([grid[i + idx, j - idx] == origin_tok_2 for idx in range(1, 4)]) if origin_tok_2 != 0 else False
+                if (horizontal_match or vertical_match or diag_desc_match):
+                    self.fini = True
+                    winners.append(origin_token_1)
+                if diag_asc_match:
+                    self.fini = True
+                    winners.append(origin_token_2)
+        if len(winners) == 1:
+            self.winner = winners[0]
+        return self.fini
 
     cpdef int is_move_possible(self, int colonne):
         return self.grid[0,colonne] == 0
