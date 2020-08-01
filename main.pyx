@@ -90,8 +90,12 @@ cdef class Game:
             return
         cdef int turn = self.turn()
         self.grid[coup.x][coup.y] = turn
+        self.apply_rotation(coup.rot)
         self.check_win()
         self.nb_moves += 1
+
+    cdef apply_rotation(self, rot):
+        pass
 
 def from_grid(grid, turn = 1):
     game = Game()
