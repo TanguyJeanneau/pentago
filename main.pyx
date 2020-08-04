@@ -38,7 +38,7 @@ cdef struct Coup:
 
 cdef class Game:
 
-    cdef public np.int_t[:,:] grid
+    cdef public int[:,:] grid
     
     cdef public int nb_moves
     
@@ -47,7 +47,12 @@ cdef class Game:
     cdef public int fini
     
     def __init__(self):
-        self.grid = np.zeros((6,6), dtype = DTYPE)
+        cdef int tableau[6][6]
+        self.grid = tableau
+        cdef int index_i, index_j
+        for index_i in range(6):
+            for index_j in range(6):
+                self.grid[index_i][index_j] = 0
         self.fini = 0
         self.winner = 0
         self.nb_moves = 0
