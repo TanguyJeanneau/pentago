@@ -1,4 +1,5 @@
 from main import *
+from time import time
 def print_game(game):
     print(" ")
     for ligne in game.grid:
@@ -17,6 +18,19 @@ play_print(4, 0, 1, 4)
 play_print(1, 4, 1, 4)
 play_print(2, 4, 1, 1)
 
-best, root = monte_carlo_tree_search(game, 1)
+if True:
+    best, root = monte_carlo_tree_search(game, 1)
+    t = time()
+    depth = 2
+    best, score = min_max(game, depth = depth)
+    print("Temps ecoule pour la profondeur", depth,'=',time()-t)
 
-print(best, root)
+    print(best, score)
+    game.play(best)
+    print_game(game)
+else:
+    play_print(2, 4, 1, 1)
+    print(game.fini)
+    print(game.winner)
+
+print()

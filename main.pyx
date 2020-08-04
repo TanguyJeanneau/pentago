@@ -1,3 +1,6 @@
+# cython: profile=True
+# cython: linetrace=True
+
 from random import shuffle
 from time import time
 import numpy as  np 
@@ -48,7 +51,6 @@ cdef class Game:
         self.fini = 0
         self.winner = 0
         self.nb_moves = 0
-        cdef int i
             
     cpdef Game copy(self):
         cdef Game other = Game()
@@ -63,23 +65,65 @@ cdef class Game:
     
 
     cpdef int check_win(self):
-        winners = []
+        cdef int[3] winners
+        cdef int i,j, origin_tok_1, origin_tok_2, idx
+        cdef int horizontal_match, vertical_match, diag_desc_match, diag_asc_match
+
         for i in range (6-3):
             for j in range(6-3):
                 origin_tok_1 = self.grid[i, j]
-                horizontal_match = all([self.grid[i, j + idx] == origin_tok_1 for idx in range(1, 4)]) if origin_tok_1 != 0 else False
-                vertical_match = all([self.grid[i + idx, j] == origin_tok_1 for idx in range(1, 4)]) if origin_tok_1 != 0 else False
-                diag_desc_match = all([self.grid[i + idx, j + idx] == origin_tok_1 for idx in range(1, 4)]) if origin_tok_1 != 0 else False
+                horizontal_match = True
+                if origin_tok_1 == 0:
+                    horizontal_match= False
+                idx = 1
+                while horizontal_match and idx < 4:
+                    if self.grid[i, j + idx] != origin_tok_1:
+                        horizontal_match = False
+                    idx += 1
+                
+                vertical_match = True
+                if origin_tok_1 == 0:
+                    vertical_match= False
+                idx = 1
+                while vertical_match and idx < 4:
+                    if self.grid[i + idx, j] != origin_tok_1:
+                        vertical_match = False
+                    idx += 1
+
+                diag_desc_match = True
+                if origin_tok_1 == 0:
+                    diag_desc_match= False
+                idx = 1
+                while diag_desc_match and idx < 4:
+                    if self.grid[i + idx, j + idx] != origin_tok_1:
+                        diag_desc_match = False
+                    idx += 1
+                
                 origin_tok_2 = self.grid[i, j + 3]
-                diag_asc_match = all([self.grid[i + idx, j - idx] == origin_tok_2 for idx in range(1, 4)]) if origin_tok_2 != 0 else False
+                
+                diag_asc_match = True
+                if origin_tok_1 == 0:
+                    diag_asc_match= False
+                idx = 1
+                while diag_asc_match and idx < 4:
+                    if self.grid[i + idx, j - idx] != origin_tok_2:
+                        diag_asc_match = False
+                    idx += 1
+                
                 if (horizontal_match or vertical_match or diag_desc_match):
                     self.fini = True
-                    winners.append(origin_tok_1)
+                    winners[origin_tok_1] = 1
                 if diag_asc_match:
                     self.fini = True
-                    winners.append(origin_tok_2)
-        if len(winners) == 1:
-            self.winner = winners[0]
+                    winners[origin_tok_2] = 1
+                
+        if winners[1] == winners[2]:
+            self.winner = 0
+        elif winners[1] == 1:
+            self.winner = 1
+        else:
+            self.winner = 2
+
         return self.fini
 
     cpdef int is_move_possible(self, int i, int j):
@@ -99,7 +143,6 @@ cdef class Game:
         nb_rot = 1 if rot.dir == Direction.clockwise else 3
         start_i = 0 if rot.pos in [Position.top_right, Position.top_left] else 3
         start_j = 0 if rot.pos in [Position.top_left, Position.bottom_left] else 3
-        print(rot, start_i, start_j)
         for _ in range(nb_rot):
             self.grid[start_i + 0][start_j + 0], self.grid[start_i + 0][start_j + 2], self.grid[start_i + 2][start_j + 2], self.grid[start_i + 2][start_j + 0] = self.grid[start_i + 2][start_j + 0], self.grid[start_i + 0][start_j + 0], self.grid[start_i + 0][start_j + 2], self.grid[start_i + 2][start_j + 2]
             self.grid[start_i + 0][start_j + 1], self.grid[start_i + 1][start_j + 2], self.grid[start_i + 2][start_j + 1], self.grid[start_i + 1][start_j + 0] = self.grid[start_i + 1][start_j + 0], self.grid[start_i + 0][start_j + 1], self.grid[start_i + 1][start_j + 2], self.grid[start_i + 2][start_j + 1]
@@ -115,14 +158,21 @@ cdef Coup create_move(int x, int y, dir, pos):
 def compatibility_create_move(x, y, dir, pos):
     return create_move(x, y, dir, pos)
 
-def possible_moves(Game game):
+cdef Coup* possible_moves(Game game):
+    cdef Coup coups[6*6*3*5+1]
+    cdef int index = 1
     coups = []
     for i in range(6):
         for j in range(6):
             if game.grid[i][j] == 0:
                 for dir in range(1,3):
                     for pos in range(1,5):
-                        coups.append(create_move(i,j, dir, pos))
+                        coups[index] = create_move(i,j, dir, pos)
+                        index += 1
+    cdef Coup final_coup
+    final_coup.x = index
+    final_coup.y = index
+    coups[0] = final_coup
     return coups
 
 cdef class Node:
@@ -141,14 +191,17 @@ cdef class Node:
         self.parent_move = parent_move
         self.win = 0
         self.visited = 0
-        self.children = np.zeros(len(possible_moves(self.game)), dtype = np.object)
+        self.children = np.zeros(possible_moves(self.game)[0].x, dtype = np.object)
         
     cpdef expend(self):
         cdef int i 
         cdef int index = 0
         cdef Game otherGame
-        coups_possibles = possible_moves(self.game)
-        for coup in coups_possibles:
+        cdef Coup* coups_possibles = possible_moves(self.game)
+        cdef int maxi = coups_possibles[0].x
+        cdef Coup coup
+        for index in range(1, maxi):
+            coup = coups_possibles[index]
             otherGame = self.game.copy()
             otherGame.play(coup)
             self.children[index] = Node(otherGame, coup)
@@ -231,11 +284,11 @@ cdef Node traverse(node):
 # function for the result of the simulation 
 cdef int rollout(Node node):
     cdef Game game = node.game.copy()
-    cdef coups_possibles
     cdef coup_choisi
+    cdef Coup* coups_possibles
     while not game.fini: 
         coups_possibles = possible_moves(game)
-        coup_choisi = coups_possibles[np.random.randint(len(coups_possibles))]
+        coup_choisi = coups_possibles[np.random.randint(1, coups_possibles[0].x)]
         game.play(coup_choisi)
     return game.winner
   
@@ -259,3 +312,31 @@ cdef Node best_child(Node node):
             best_score = score
             best = node.children[i]
     return best
+
+def evaluation_basique(jeu):
+    if jeu.winner == 2:
+        return -1
+    return jeu.winner
+
+
+cpdef min_max(jeu, depth = 3):
+    if depth == 0: 
+        return None, evaluation_basique(jeu)
+    cdef float alpha = float('-inf')
+    cdef float beta = float('inf')
+    cdef int joueur = jeu.turn()
+    cdef float best_score = float('inf') * (-1 if joueur ==1 else 1)
+    cdef float score
+    cdef Coup coup
+    coups = possible_moves(jeu)
+    cdef int maxi = coups[0].x
+    for index in range(1, maxi):
+        coup = coups[index]
+        other_game = jeu.copy()
+        other_game.play(coup)
+        score = min_max(other_game, depth - 1)[1]
+        
+        if joueur == 1 and score > best_score or joueur == 2 and score < best_score:
+            best = coup
+            best_score = score
+    return best, score
